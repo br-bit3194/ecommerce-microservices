@@ -1,5 +1,4 @@
 from django.http import JsonResponse
-from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
@@ -7,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from django.db import IntegrityError
+from django.db.models import Q
 
 
 from .models import Products, Category
@@ -93,3 +93,50 @@ class ProductsView(APIView):
         parsed_errors = parse_serializer_errors(serializer.errors)
         err_resp = {"errors": parsed_errors}
         return JsonResponse(err_resp, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET"])
+def get_product_by_id(request, product_id):
+    correlation_id = request.correlation_id  # Get correlation id from middleware
+    print(correlation_id)
+    try:
+        data = Products.objects.get(id=product_id)
+        serializedProductes = ProductSerializer(data).data
+        return Response(serializedProductes, status=status.HTTP_200_OK)
+    except Products.DoesNotExist:
+        return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        # Catch unexpected errors and log them
+        # logger.error(f"Unexpected error retrieving product {product_id} (Correlation ID: {correlation_id}): {str(e)}",
+        #              exc_info=True)
+        return Response(
+            {"error": "An unexpected error occurred. Please try again later."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(["GET"])
+def filter_products(request):
+    correlation_id = request.correlation_id  # Get correlation id from middleware
+    print(correlation_id)
+    try:
+        name = request.GET.get("name", None)
+        description = request.GET.get('description', None)
+        price = request.GET.get('price', None)
+
+        # Build the filter query using Q objects
+        filters = Q()
+
+        if name:
+            filters &= Q(name__icontains=name)
+        if description:
+            filters &= Q(description__icontains=description)
+        if price:
+            filters &= Q(price=float(price))
+
+        data = Products.objects.filter(filters)
+        serializer = ProductSerializer(data, many=True)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        print(e)
+        return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -19,7 +19,11 @@ from . import views
 from django.urls import path
 
 urlpatterns = [
+    path("health/", views.health_check, name="health_check"),
+
     path("", views.ProductsView.as_view(), name="products"),
     path("categories/", views.CategoryView.as_view(), name="categories"),
-    path("health/", views.health_check, name="health_check"),
+
+    path("<int:product_id>/", views.get_product_by_id, name="product_detail"),
+    path("filter_products/", views.filter_products, name="filter_products"),
 ]
