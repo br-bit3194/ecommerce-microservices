@@ -1,3 +1,5 @@
+# products/views.py
+import logging
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -5,15 +7,14 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
-from django.db import IntegrityError
-from django.db.models import Q
+
+from .models import Products
+from .services.product_manager import ProductManager
+from .services.category_manager import CategoryManager
+
+logger = logging.getLogger(__name__)
 
 
-from .models import Products, Category
-from .serializers import ProductSerializer, CategorySerializer
-from .utils import parse_serializer_errors
-
-# Create your views here.
 @api_view(["GET"])
 def health_check(request):
     return JsonResponse({"status": "healthy"})
@@ -22,121 +23,82 @@ def health_check(request):
 class CategoryView(APIView):
     def get(self, request):
         correlation_id = request.correlation_id  # Get correlation id from middleware
-        print(correlation_id)
-        # Logic to retrieve categories
         try:
-            all_categories = Category.objects.all()
-            serialized_categories = CategorySerializer(all_categories, many=True).data
-            return JsonResponse({"data": serialized_categories}, status=status.HTTP_200_OK)
+            logger.info(f"Category creation completed", extra={"correlation_id": correlation_id})
+            categories = CategoryManager.list_all_categories()
+            logger.info(f"Fetched all products successfully - total categories: {len(categories)}", extra={"correlation_id": correlation_id})
+            return JsonResponse({"data": categories}, status=status.HTTP_200_OK)
         except Exception as e:
-            # Custom error handling in case something goes wrong
-            # logger.error(f"Error fetching categories: {str(e)}", exc_info=True)
+            logger.exception(f"Error fetching products: {str(e)}", extra={"correlation_id": correlation_id})
             return JsonResponse(
-                {"error": "Failed to retrieve categories. Please try again later."},
+                {"error": "Failed to retrieve categories."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     def post(self, request):
         correlation_id = request.correlation_id  # Get correlation id from middleware
-        print(correlation_id)
-        # Logic to create a new category
-        category_data = request.data
-        serializer = CategorySerializer(data=category_data)
-        if serializer.is_valid():
-            try:
-                serializer.save()
-                return JsonResponse({"data": serializer.data}, status=status.HTTP_201_CREATED)
-            except IntegrityError:
-                # In case model-level unique constraint throws an error
-                return JsonResponse({"error": "Category already exists"}, status=status.HTTP_400_BAD_REQUEST)
+        logger.info("Category creation started", extra={"correlation_id": correlation_id})
+        serializer_data, error = CategoryManager.create_category(request.data)
+        if error:
+            logger.error(f"Error creating category: {error}", extra={"correlation_id": correlation_id})
+            return JsonResponse({"errors": error}, status=status.HTTP_400_BAD_REQUEST)
 
-        parsed_errors = parse_serializer_errors(serializer.errors)
-        err_resp = {"errors": parsed_errors}
-        return JsonResponse(err_resp, status=status.HTTP_400_BAD_REQUEST)
+        logger.info(f"Category creation completed", extra={"correlation_id": correlation_id})
+        return JsonResponse({"data": serializer_data}, status=status.HTTP_201_CREATED)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ProductsView(APIView):
     def get(self, request):
         correlation_id = request.correlation_id  # Get correlation id from middleware
-        print(correlation_id)
-        # Logic to retrieve products
         try:
-            # Logic to retrieve all products
-            all_products = Products.objects.all()
-            serialized_products = ProductSerializer(all_products, many=True).data
-
-            # logger.info(f"Successfully retrieved {len(all_products)} products.")
-
-            # Return success response with serialized product data
-            return JsonResponse({"data": serialized_products}, status=status.HTTP_200_OK)
-
+            logger.info(f"Product retrieval started", extra={"correlation_id": correlation_id})
+            products = ProductManager.list_all_products()
+            logger.info(f"Product retrieval completed - total products: {len(products)}", extra={"correlation_id": correlation_id})
+            return JsonResponse({"data": products}, status=status.HTTP_200_OK)
         except Exception as e:
-            # Log unexpected errors
-            # logger.error(f"Error occurred while retrieving products (Correlation ID: {correlation_id}): {str(e)}",
-            #              exc_info=True)
-            # Return generic error message for unexpected issues
+            logger.exception(f"Error fetching products: {str(e)}", extra={"correlation_id": correlation_id})
             return JsonResponse(
-                {"error": "An unexpected error occurred while retrieving products. Please try again later."},
+                {"error": "Failed to retrieve products."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     def post(self, request):
         correlation_id = request.correlation_id  # Get correlation id from middleware
-        print(correlation_id)
-        # Logic to create a new product
-        product_data = request.data
-        serializer = ProductSerializer(data=product_data)
-        if serializer.is_valid():
-            serializer.save()
-            return JsonResponse({"data": serializer.data}, status=status.HTTP_201_CREATED)
+        logger.info("Product creation started", extra={"correlation_id": correlation_id})
+        serializer_data, error = ProductManager.create_product(request.data)
+        if error:
+            logger.error(f"Error creating product: {error}", extra={"correlation_id": correlation_id})
+            return JsonResponse({"errors": error}, status=status.HTTP_400_BAD_REQUEST)
 
-        parsed_errors = parse_serializer_errors(serializer.errors)
-        err_resp = {"errors": parsed_errors}
-        return JsonResponse(err_resp, status=status.HTTP_400_BAD_REQUEST)
+        logger.info(f"Product creation completed", extra={"correlation_id": correlation_id})
+        return JsonResponse({"data": serializer_data}, status=status.HTTP_201_CREATED)
+
 
 @api_view(["GET"])
 def get_product_by_id(request, product_id):
     correlation_id = request.correlation_id  # Get correlation id from middleware
-    print(correlation_id)
     try:
-        data = Products.objects.get(id=product_id)
-        serializedProductes = ProductSerializer(data).data
-        return Response(serializedProductes, status=status.HTTP_200_OK)
+        logger.info(f"Product retrieval by ID started", extra={"correlation_id": correlation_id})
+        product = ProductManager.get_product_by_id(product_id)
+        logger.info(f"Product retrieval by ID completed", extra={"correlation_id": correlation_id})
+        return Response(product, status=status.HTTP_200_OK)
     except Products.DoesNotExist:
+        logger.error(f"Product not found: {product_id}", extra={"correlation_id": correlation_id})
         return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        # Catch unexpected errors and log them
-        # logger.error(f"Unexpected error retrieving product {product_id} (Correlation ID: {correlation_id}): {str(e)}",
-        #              exc_info=True)
-        return Response(
-            {"error": "An unexpected error occurred. Please try again later."},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        logger.exception(f"Error fetching product by ID: {str(e)}", extra={"correlation_id": correlation_id})
+        return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(["GET"])
 def filter_products(request):
     correlation_id = request.correlation_id  # Get correlation id from middleware
-    print(correlation_id)
     try:
-        name = request.GET.get("name", None)
-        description = request.GET.get('description', None)
-        price = request.GET.get('price', None)
-
-        # Build the filter query using Q objects
-        filters = Q()
-
-        if name:
-            filters &= Q(name__icontains=name)
-        if description:
-            filters &= Q(description__icontains=description)
-        if price:
-            filters &= Q(price=float(price))
-
-        data = Products.objects.filter(filters)
-        serializer = ProductSerializer(data, many=True)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
+        logger.info(f"Product filtering started", extra={"correlation_id": correlation_id})
+        filters = request.GET
+        products = ProductManager.filter_products(filters)
+        logger.info(f"Product filtering completed - total products: {len(products)}", extra={"correlation_id": correlation_id})
+        return Response(products, status=status.HTTP_200_OK)
     except Exception as e:
-        print(e)
-        return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logger.exception(f"Error filtering products: {str(e)}", extra={"correlation_id": correlation_id})
+        return Response({"error": "Something went wrong."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
