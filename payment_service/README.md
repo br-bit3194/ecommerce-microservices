@@ -1,1 +1,1 @@
-<img src="https://razorpay.com/docs/build/browser/assets/images/payment-flow-pg.jpg">
+![Razorpay Payment Flow](https://razorpay.com/docs/build/browser/assets/images/payment-flow-pg.jpg)
