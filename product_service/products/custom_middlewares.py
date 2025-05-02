@@ -6,14 +6,15 @@ class CorrelationIdMiddleware:
     If not present, it generates a new one.
     """
 
-    CORRELATION_ID_HEADER = 'HTTP_X_CORRELATION_ID'
+    CORRELATION_ID_HEADER = 'X-Correlation-ID'
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         # Get existing correlation id or generate new one
-        correlation_id = request.META.get(self.CORRELATION_ID_HEADER)
+        correlation_id = request.headers.get(self.CORRELATION_ID_HEADER)
+        print(correlation_id)
 
         if not correlation_id:
             correlation_id = str(uuid.uuid4())

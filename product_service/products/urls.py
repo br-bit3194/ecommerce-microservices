@@ -26,4 +26,5 @@ urlpatterns = [
 
     path("<int:product_id>/", views.get_product_by_id, name="product_detail"),
     path("filter_products/", views.filter_products, name="filter_products"),
+    path("check_stock/", views.check_stock, name="check_stock"),
 ]

@@ -82,13 +82,13 @@ def get_product_by_id(request, product_id):
         logger.info(f"Product retrieval by ID started", extra={"correlation_id": correlation_id})
         product = ProductManager.get_product_by_id(product_id)
         logger.info(f"Product retrieval by ID completed", extra={"correlation_id": correlation_id})
-        return Response(product, status=status.HTTP_200_OK)
+        return JsonResponse(product, status=status.HTTP_200_OK)
     except Products.DoesNotExist:
         logger.error(f"Product not found: {product_id}", extra={"correlation_id": correlation_id})
-        return Response({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
+        return JsonResponse({"error": "Product not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         logger.exception(f"Error fetching product by ID: {str(e)}", extra={"correlation_id": correlation_id})
-        return Response({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({"error": "An unexpected error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(["GET"])
 def filter_products(request):
@@ -98,7 +98,30 @@ def filter_products(request):
         filters = request.GET
         products = ProductManager.filter_products(filters)
         logger.info(f"Product filtering completed - total products: {len(products)}", extra={"correlation_id": correlation_id})
-        return Response(products, status=status.HTTP_200_OK)
+        return JsonResponse(products, status=status.HTTP_200_OK)
     except Exception as e:
         logger.exception(f"Error filtering products: {str(e)}", extra={"correlation_id": correlation_id})
-        return Response({"error": "Something went wrong."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({"error": "Something went wrong."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+def check_stock(request):
+    correlation_id = request.correlation_id  # Get correlation id from middleware
+    try:
+        logger.info(f"Stock check started", extra={"correlation_id": correlation_id})
+        items = request.data.get("items", [])
+
+        if not items:
+            logger.error(f"No items provided for stock check", extra={"correlation_id": correlation_id})
+            return JsonResponse({"error": "No items provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        result, error = ProductManager.check_stock(items)
+        if error:
+            logger.error(f"Stock check failed: {error}", extra={"correlation_id": correlation_id})
+            return JsonResponse({"error": error}, status=status.HTTP_400_BAD_REQUEST)
+
+        logger.info(f"Stock check completed - available items: {result}", extra={"correlation_id": correlation_id})
+        return JsonResponse(result, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.exception(f"Error checking stock: {str(e)}", extra={"correlation_id": correlation_id})
+        return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
