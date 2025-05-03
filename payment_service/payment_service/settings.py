@@ -9,12 +9,21 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+import sys, os
+from dotenv import load_dotenv
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
+PAYMENT_LINK_CALLBACK_URL = os.getenv("PAYMENT_LINK_CALLBACK_URL")
+ORDER_UPDATE_QUEUE_URL = os.getenv("ORDER_UPDATE_QUEUE_URL")
+PAYMENT_UPDATE_QUEUE_URL = os.getenv("PAYMENT_UPDATE_QUEUE_URL")
+AWS_REGION = os.getenv("AWS_REGION")
+PAYMENT_SERVICE_BASE_URL = os.getenv("PAYMENT_SERVICE_BASE_URL")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -37,6 +46,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "payments",
+    "rest_framework"
 ]
 
 MIDDLEWARE = [
@@ -47,6 +58,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "payments.custom_middlewares.CorrelationIdMiddleware",
 ]
 
 ROOT_URLCONF = "payment_service.urls"
@@ -121,3 +133,48 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,  # Important: keep Django's default logging alive
+    'formatters': {
+        'default': {
+            'format': '{"timestamp": %(asctime)s, "severity": %(levelname)s, "logger": %(name)s, "function": %(funcName)s, "line": %(lineno)d, "correlation_id": %(correlation_id)s, "message": %(message)s}',
+            'style': '%',  # Ensure we're using the '%' style
+        },
+    },
+    'filters': {
+        'correlation_id_filter': {
+            '()': 'payments.utils.CorrelationIdFilter',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'default',
+            'filters': ['correlation_id_filter'],
+            'stream': sys.stdout,
+        },
+        # 'cloudwatch': {  <-- Later, just add this
+        #     'class': 'watchtower.CloudWatchLogHandler',
+        #     'log_group': 'your-log-group-name',
+        #     'stream_name': 'your-stream-name',
+        #     'formatter': 'default',
+        #     'filters': ['correlation_id_filter'],
+        # },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',  # Can set DEBUG in local dev
+            'propagate': True,
+        },
+        'payments': {  # <-- Your custom app logger
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+APPEND_SLASH = True

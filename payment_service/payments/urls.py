@@ -19,4 +19,5 @@ from django.urls import path
 
 urlpatterns = [
     path("create_payment_link/", views.create_payment_link, name="create_payment_link"),
+    path("payment_link_callback/", views.payment_link_callback, name="payment_link_callback"),
 ]
