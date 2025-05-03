@@ -35,3 +35,6 @@ The `user_service` is responsible for managing user-related operations such as a
    ```bash
    python manage.py runserver 8000
    ```
+   
+## Swagger Documentation
+- The API documentation is available at `http://localhost:8000/swagger/` after running the server.

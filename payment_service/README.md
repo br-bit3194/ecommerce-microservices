@@ -49,6 +49,9 @@ The `payment_service` is responsible for handling payment-related operations suc
    python manage.py runserver 8003
    ```
 
+## Swagger Documentation
+- The API documentation is available at `http://localhost:8003/swagger/` after running the server.
+
 ## Notification to order service
 - The payment service will send a notification to the order service upon successful & failed payment. This is done using a POST request to the order service's endpoint with the payment details.
 

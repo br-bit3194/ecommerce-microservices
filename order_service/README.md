@@ -56,6 +56,9 @@ Start order service polling SQS:
   python manage.py poll_sqs
 ```
 
+## Swagger Documentation
+- The API documentation is available at `http://localhost:8002/swagger/` after running the server.
+
 ## API Endpoints
 
 ### Order Operations
