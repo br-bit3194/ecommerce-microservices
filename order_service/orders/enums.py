@@ -2,5 +2,5 @@ from enum import Enum
 
 class OrderStatus(Enum):
     PENDING = 'pending'
-    SUCCESS = 'success'
+    COMPLETED = 'completed'
     FAILED = 'failed'

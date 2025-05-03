@@ -47,8 +47,6 @@ class OrderView(APIView):
                 logger.error("Order creation failed", extra={'correlation_id': correlation_id})
                 return Response({"error": error}, status=status.HTTP_400_BAD_REQUEST)
 
-            #
-
             # Serialize the order object
             serializer = OrderSerializer(order_obj)
             logger.info("Order created successfully", extra={'correlation_id': correlation_id})

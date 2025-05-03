@@ -9,12 +9,19 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-import sys
+import sys, os
+from dotenv import load_dotenv
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
+ORDER_UPDATE_QUEUE_URL = os.getenv("ORDER_UPDATE_QUEUE_URL")
+PAYMENT_UPDATE_QUEUE_URL = os.getenv("PAYMENT_UPDATE_QUEUE_URL")
+AWS_REGION = os.getenv("AWS_REGION")
+PRODUCT_SERVICE_URL = os.getenv("PRODUCT_SERVICE_URL")
+USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
