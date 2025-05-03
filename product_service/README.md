@@ -36,6 +36,8 @@ The `product_service` is responsible for managing product-related operations suc
    python manage.py runserver 8001
    ```
 
+## Swagger Documentation
+- The API documentation is available at `http://localhost:8001/swagger/` after running the server.
 
 ## Technologies Used
 
