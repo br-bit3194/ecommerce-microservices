@@ -1,6 +1,17 @@
 version: "3.9"
 
 services:
+  localstack:
+    image: localstack/localstack:4.5
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs
+      - DEBUG=1
+    volumes:
+      - ./localstack:/etc/localstack
+      - localstack_data:/var/lib/localstack
+
   user_service:
     build: ./user_service
     ports:
@@ -15,6 +26,15 @@ services:
     volumes:
       - ./product_service:/app
 
+  init_localstack:
+    image: localstack/localstack:4.5
+    depends_on:
+      - localstack
+    entrypoint: /bin/bash
+    command: -c "chmod +x /init_localstack.sh && /init_localstack.sh"
+    volumes:
+      - ./init_localstack.sh:/init_localstack.sh:ro
+
   order_service:
     build: ./order_service
     ports:
@@ -26,7 +46,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_SQS_QUEUE_URL=http://localstack:4566/000000000000/order-queue
     depends_on:
-      - localstack
+      - user_service
+      - product_service
+      - init_localstack
 
   payment_service:
     build: ./payment_service
@@ -42,27 +64,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=test
       - AWS_SQS_QUEUE_URL=http://localstack:4566/000000000000/payment-queue
     depends_on:
-      - localstack
-
-  localstack:
-    image: localstack/localstack:4.5
-    ports:
-      - "4566:4566"
-    environment:
-      - SERVICES=sqs
-      - DEBUG=1
-    volumes:
-      - ./localstack:/etc/localstack
-      - localstack_data:/var/lib/localstack
-
-  init_localstack:
-    image: localstack/localstack:4.5
-    depends_on:
-      - localstack
-    entrypoint: /bin/bash
-    command: -c "chmod +x /init_localstack.sh && /init_localstack.sh"
-    volumes:
-      - ./init_localstack.sh:/init_localstack.sh:ro
+      - user_service
+      - product_service
+      - init_localstack
 
 volumes:
   localstack_data:
