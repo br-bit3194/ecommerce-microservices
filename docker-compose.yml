@@ -44,22 +44,6 @@ services:
     depends_on:
       - localstack
 
-  order_worker:
-    build: ./order_service
-    command: python manage.py poll_sqs
-    depends_on:
-      - order_service
-      - localstack
-      - init_localstack
-
-  payment_worker:
-    build: ./payment_service
-    command: python manage.py poll_sqs
-    depends_on:
-      - payment_service
-      - localstack
-      - init_localstack
-
   localstack:
     image: localstack/localstack:4.5
     ports:
