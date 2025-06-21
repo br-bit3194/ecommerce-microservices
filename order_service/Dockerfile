@@ -1,13 +1,12 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
 COPY . .
 
 RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    cp .env.backup .env || true
+    pip install -r requirements.txt
 
-EXPOSE 8000
+EXPOSE 8002
 
 CMD ["sh", "./entrypoint.sh"]
