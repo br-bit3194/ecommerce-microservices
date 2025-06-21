@@ -10,6 +10,7 @@ services:
       - DEBUG=1
     volumes:
       - ./localstack:/etc/localstack
+      - ./init_localstack.sh:/etc/localstack/init/ready.d/init_localstack.sh:ro
       - localstack_data:/var/lib/localstack
 
   user_service:
@@ -26,15 +27,6 @@ services:
     volumes:
       - ./product_service:/app
 
-  init_localstack:
-    image: localstack/localstack:4.5
-    depends_on:
-      - localstack
-    entrypoint: /bin/bash
-    command: -c "chmod +x /init_localstack.sh && /init_localstack.sh"
-    volumes:
-      - ./init_localstack.sh:/init_localstack.sh:ro
-
   order_service:
     build: ./order_service
     ports:
@@ -48,7 +40,7 @@ services:
     depends_on:
       - user_service
       - product_service
-      - init_localstack
+      - localstack
 
   payment_service:
     build: ./payment_service
@@ -66,7 +58,7 @@ services:
     depends_on:
       - user_service
       - product_service
-      - init_localstack
+      - localstack
 
 volumes:
   localstack_data:
