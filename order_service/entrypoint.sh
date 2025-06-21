@@ -6,3 +6,4 @@ python manage.py makemigrations || true
 python manage.py migrate || true
 
 python manage.py runserver 0.0.0.0:8002
+python manage.py poll_sqs
