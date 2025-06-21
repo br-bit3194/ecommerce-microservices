@@ -1,6 +1,5 @@
 import logging
 import requests, json
-from Tools.scripts.generate_opcode_h import header
 from django.conf import settings
 from rest_framework import status
 
