@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  localstack:
+    image: localstack/localstack:4.5
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sqs
+      - DEBUG=1
+    volumes:
+      - ./localstack:/etc/localstack
+      - ./init_localstack.sh:/etc/localstack/init/ready.d/init_localstack.sh:ro
+      - localstack_data:/var/lib/localstack
+
+  user_service:
+    build: ./user_service
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./user_service:/app
+
+  product_service:
+    build: ./product_service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./product_service:/app
+
+  order_service:
+    build: ./order_service
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./order_service:/app
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_SQS_QUEUE_URL=http://localstack:4566/000000000000/order-queue
+    depends_on:
+      - user_service
+      - product_service
+      - localstack
+
+  payment_service:
+    build: ./payment_service
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./payment_service:/app
+    environment:
+      - RAZORPAY_KEY_ID=dummy
+      - RAZORPAY_KEY_SECRET=dummy
+      - PAYMENT_LINK_CALLBACK_URL=http://order_service:8002/payment/callback
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_SQS_QUEUE_URL=http://localstack:4566/000000000000/payment-queue
+    depends_on:
+      - user_service
+      - product_service
+      - localstack
+
+volumes:
+  localstack_data:
